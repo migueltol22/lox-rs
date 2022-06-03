@@ -1,0 +1,22 @@
+print "Hello, world";
+
+class Breakfast {
+  cook() {
+    print "Eggs a-fryin'!";
+  }
+
+  serve(who) {
+    print "Enjoy your breakfast, " + who + ".";
+  }
+}
+
+
+var min = 5;
+var max = 20;
+
+var average = (min + max) / 2;
+
+
+print "Average";
+print average;
+

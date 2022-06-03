@@ -1,17 +1,12 @@
 use std::env;
-use std::fmt;
-use std::process;
-use std::str::Chars;
 use std::fs::File;
-use std::{io, io::Read, io::BufRead};
+use std::process;
+use std::{io, io::BufRead, io::Read};
 
-use itertools::Itertools;
-use itertools::MultiPeek;
-
-use lox_rs::token::{TokenType, Token};
+use lox_rs::scanner::Scanner;
 
 // map error to cmd line error
-fn run_file(file_path: &str) -> Result<(), io::Error>{
+fn run_file(file_path: &str) -> Result<(), io::Error> {
     let mut f = File::open(&file_path)?;
     let mut source = String::new();
 
@@ -35,34 +30,8 @@ fn run_prompt() -> Result<(), io::Error> {
     }
 }
 
-struct Scanner<'a> {
-    source: MultiPeek<Chars<'a>>
-}
-
-impl<'a> Scanner<'a> {
-    pub fn new(source: &'a str) -> Self {
-        Self{
-            source: source.chars().multipeek(),
-        }
-    }
-
-    pub fn scan_tokens(&self) -> Vec<Token> {
-        todo!()
-    }
-
-    pub fn error(&self, line: u32, msg: &str) {
-        self.report(line, "", msg);
-    }
-
-    pub fn report(&self, line: u32, loc: &str, msg: &str) {
-        eprintln!(
-            "[line {}] Error {}: {}", line, loc, msg
-        )
-    }
-}
-
 fn run(source: &str) -> Result<(), io::Error> {
-    let scanner = Scanner::new(source);
+    let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens();
 
     for token in tokens {
@@ -73,7 +42,7 @@ fn run(source: &str) -> Result<(), io::Error> {
 }
 
 fn main() {
-    let args : Vec<String> = env::args().into_iter().skip(1).collect();
+    let args: Vec<String> = env::args().into_iter().skip(1).collect();
 
     if args.len() > 1 {
         eprintln!("Usage: lox-rs [script]");
