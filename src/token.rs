@@ -55,12 +55,12 @@ impl fmt::Display for Literal {
 pub enum TokenType {
     // Single Character Tokens
     LeftParens,
-    RightParents,
+    RightParens,
     LeftBrace,
     RightBrace,
     Comma,
     Dot,
-    Minues,
+    Minus,
     Plus,
     SemiColon,
     Slash,
@@ -100,6 +100,8 @@ pub enum TokenType {
     While,
 
     Eof,
+
+    SyntaxError { error_msg: Option<&'static str>},
 }
 
 impl fmt::Display for TokenType {
