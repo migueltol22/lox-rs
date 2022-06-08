@@ -56,7 +56,7 @@ fn main() {
             }
         }
     } else {
-        run_prompt();
+        _ = run_prompt();
     }
 
     process::exit(0);

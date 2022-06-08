@@ -47,55 +47,93 @@ impl<'a> Scanner<'a> {
             ';' => self.finalize_token(TokenType::SemiColon),
             '*' => self.finalize_token(TokenType::Star),
             '!' => {
-                if self.match_on_next_char('=') {
+                if self.advance_on_match('=') {
                     self.finalize_token(TokenType::BangEqual)
                 } else {
                     self.finalize_token(TokenType::Bang)
                 }
-            },
+            }
             '=' => {
-                if self.match_on_next_char('=') {
+                if self.advance_on_match('=') {
                     self.finalize_token(TokenType::EqualEqual)
                 } else {
                     self.finalize_token(TokenType::Equal)
                 }
-            },
+            }
             '<' => {
-                if self.match_on_next_char('=') {
+                if self.advance_on_match('=') {
                     self.finalize_token(TokenType::LessEqual)
                 } else {
                     self.finalize_token(TokenType::Less)
                 }
-            },
+            }
             '>' => {
-                if self.match_on_next_char('=') {
+                if self.advance_on_match('=') {
                     self.finalize_token(TokenType::GreaterEqual)
                 } else {
                     self.finalize_token(TokenType::Greater)
                 }
-            },
-            _ => self.finalize_error_token(None),
+            }
+            '/' => {
+                if self.advance_on_match('/') {
+                    self.advance_until('\n');
+                    self.curr_buf.clear();
+                    self.scan_token()?
+                } else {
+                    self.finalize_token(TokenType::Slash)
+                }
+            }
+            ' ' | '\r' | '\t' | '\n' => {
+                return None;
+            }
+            _ => self.finalize_error_token(Some("Unexpected character.")),
         };
 
         Some(token)
     }
 
-    pub fn match_on_next_char(&mut self, c: char) -> bool {
+    pub fn advance(&mut self) -> Option<char> {
+        let c = self.source.next()?;
+        if c == '\n' {
+            self.line += 1;
+        }
+        self.curr_buf.push(c);
+        Some(c)
+    }
+
+    pub fn advance_until(&mut self, c: char) -> Option<char> {
+        loop {
+            let next = self.source.peek()?;
+            if next != &c {
+                self.advance();
+                continue;
+            }
+            return None;
+        }
+    }
+
+    pub fn advance_on_match(&mut self, c: char) -> bool {
         if Some(&c) == self.source.peek() {
-            // maybe add this to buffer
-            self.source.next();
+            self.advance();
             true
         } else {
             false
         }
     }
 
-    pub fn finalize_token(&self, token_type: TokenType) -> Token {
-        todo!()
+    pub fn finalize_token(&mut self, token_type: TokenType) -> Token {
+        let lexeme = String::from_iter(self.curr_buf.drain(..));
+        Token {
+            token_type,
+            lexeme,
+            literal: None,
+            line: self.line,
+        }
     }
 
-    pub fn finalize_error_token(&self, msg: Option<&'static str>) -> Token {
-        todo!()
+    pub fn finalize_error_token(&mut self, msg: Option<&'static str>) -> Token {
+        let token_type = TokenType::SyntaxError { error_msg: msg };
+        self.finalize_token(token_type)
     }
 
     pub fn error(&self, line: u32, msg: &str) {
