@@ -86,6 +86,9 @@ impl<'a> Scanner<'a> {
             ' ' | '\r' | '\t' | '\n' => {
                 return None;
             }
+            '"' => {
+                self.string()
+            }
             _ => self.finalize_error_token(Some("Unexpected character.")),
         };
 
@@ -106,9 +109,9 @@ impl<'a> Scanner<'a> {
             let next = self.source.peek()?;
             if next != &c {
                 self.advance();
-                continue;
+            } else {
+                return Some(c);
             }
-            return None;
         }
     }
 
