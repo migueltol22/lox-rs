@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use itertools::MultiPeek;
-use std::str::Chars;
+use std::str::{Chars, FromStr};
 
 use crate::token::{Token, TokenType};
 
@@ -34,7 +34,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn scan_token(&mut self) -> Option<Token> {
-        let c = self.source.next()?;
+        let c = self.advance()?;
 
         let token = match c {
             '(' => self.finalize_token(TokenType::LeftParens),
@@ -76,7 +76,7 @@ impl<'a> Scanner<'a> {
             }
             '/' => {
                 if self.advance_on_match('/') {
-                    self.advance_until('\n');
+                    self.advance_until(|c| c != &'\n');
                     self.curr_buf.clear();
                     self.scan_token()?
                 } else {
@@ -89,13 +89,48 @@ impl<'a> Scanner<'a> {
             '"' => {
                 self.string()
             }
+            d if d.is_ascii_digit() => {
+                let next_char = self.advance_until(|c| c.is_ascii_digit());
+                if next_char == Some('.') {
+                    if let Some(c) = self.source.peek() {
+                        if c.is_ascii_digit() {
+                            self.advance();
+                            self.advance_until(|c| c.is_ascii_digit());
+                        }
+                    }
+                }
+                let lexeme = String::from_iter(self.curr_buf.drain(..));
+                match f64::from_str(&lexeme) {
+                    Ok(_) => Token {
+                        token_type: TokenType::Number,
+                        lexeme,
+                        literal: None,
+                        line: self.line,
+                    },
+                    Err(_) => self.finalize_error_token(Some("Failed to parse number"))
+                }
+            }
             _ => self.finalize_error_token(Some("Unexpected character.")),
         };
 
         Some(token)
     }
 
-    pub fn advance(&mut self) -> Option<char> {
+    fn string(&mut self) -> Token {
+        if let Some(_) = self.advance_until(|c| c != &'"') {
+            let lexeme= String::from_iter(self.curr_buf.drain(..)).trim_matches('"').to_string();
+            Token {
+                token_type: TokenType::String,
+                lexeme,
+                literal: None,
+                line: self.line,
+            }
+        } else {
+            self.finalize_error_token(Some("Unterminated string."))
+        }
+    }
+
+    fn advance(&mut self) -> Option<char> {
         let c = self.source.next()?;
         if c == '\n' {
             self.line += 1;
@@ -104,18 +139,21 @@ impl<'a> Scanner<'a> {
         Some(c)
     }
 
-    pub fn advance_until(&mut self, c: char) -> Option<char> {
+   fn advance_until<F>(&mut self, f: F) -> Option<char>
+   where
+        F: Fn(&char) -> bool 
+    {
         loop {
             let next = self.source.peek()?;
-            if next != &c {
+            if f(next) {
                 self.advance();
             } else {
-                return Some(c);
+                return Some(*next);
             }
         }
     }
 
-    pub fn advance_on_match(&mut self, c: char) -> bool {
+    fn advance_on_match(&mut self, c: char) -> bool {
         if Some(&c) == self.source.peek() {
             self.advance();
             true
@@ -124,7 +162,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn finalize_token(&mut self, token_type: TokenType) -> Token {
+    fn finalize_token(&mut self, token_type: TokenType) -> Token {
         let lexeme = String::from_iter(self.curr_buf.drain(..));
         Token {
             token_type,
@@ -134,16 +172,16 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn finalize_error_token(&mut self, msg: Option<&'static str>) -> Token {
+    fn finalize_error_token(&mut self, msg: Option<&'static str>) -> Token {
         let token_type = TokenType::SyntaxError { error_msg: msg };
         self.finalize_token(token_type)
     }
 
-    pub fn error(&self, line: u32, msg: &str) {
+    fn error(&self, line: u32, msg: &str) {
         self.report(line, "", msg);
     }
 
-    pub fn report(&self, line: u32, loc: &str, msg: &str) {
+    fn report(&self, line: u32, loc: &str, msg: &str) {
         eprintln!("[line {}] Error {}: {}", line, loc, msg)
     }
 }
