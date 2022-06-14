@@ -103,17 +103,13 @@ impl<'a> Scanner<'a> {
                     self.finalize_token(TokenType::Slash)
                 }
             }
-            ' ' | '\r' | '\t' | '\n' => {
-                Token {
-                    token_type: TokenType::Ignore,
-                    lexeme: "".to_string(),
-                    literal: None,
-                    line: self.line,
-                }
-            }
-            '"' => {
-                self.string()
-            }
+            ' ' | '\r' | '\t' | '\n' => Token {
+                token_type: TokenType::Ignore,
+                lexeme: "".to_string(),
+                literal: None,
+                line: self.line,
+            },
+            '"' => self.string(),
             d if d.is_ascii_digit() => {
                 let next_char = self.advance_until(|c| c.is_ascii_digit());
                 if next_char == Some('.') {
@@ -132,11 +128,11 @@ impl<'a> Scanner<'a> {
                         literal: None,
                         line: self.line,
                     },
-                    Err(_) => self.finalize_error_token(Some("Failed to parse number"))
+                    Err(_) => self.finalize_error_token(Some("Failed to parse number")),
                 }
             }
             c if c.is_ascii_alphabetic() || &c == &'_' => {
-                self.advance_until(|c | c.is_ascii_alphanumeric() || c == &'_');
+                self.advance_until(|c| c.is_ascii_alphanumeric() || c == &'_');
 
                 let lexeme = String::from_iter(self.curr_buf.drain(..));
                 let token_type = match self.keywords.get(&lexeme) {
@@ -148,7 +144,7 @@ impl<'a> Scanner<'a> {
                     token_type,
                     lexeme,
                     literal: None,
-                    line: self.line
+                    line: self.line,
                 }
             }
             _ => self.finalize_error_token(Some("Unexpected character.")),
@@ -161,7 +157,9 @@ impl<'a> Scanner<'a> {
         if let Some(_) = self.advance_until(|c| c != &'"') {
             // Consume last '"'
             self.advance();
-            let lexeme= String::from_iter(self.curr_buf.drain(..)).trim_matches('"').to_string();
+            let lexeme = String::from_iter(self.curr_buf.drain(..))
+                .trim_matches('"')
+                .to_string();
             Token {
                 token_type: TokenType::String,
                 lexeme,
@@ -182,9 +180,9 @@ impl<'a> Scanner<'a> {
         Some(c)
     }
 
-   fn advance_until<F>(&mut self, f: F) -> Option<char>
-   where
-        F: Fn(&char) -> bool 
+    fn advance_until<F>(&mut self, f: F) -> Option<char>
+    where
+        F: Fn(&char) -> bool,
     {
         loop {
             let next = self.source.peek()?;
