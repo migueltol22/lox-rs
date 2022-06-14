@@ -18,8 +18,6 @@ impl Token {
     }
 }
 
-// impl
-
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut literal_str = String::new();
@@ -100,6 +98,7 @@ pub enum TokenType {
     While,
 
     Eof,
+    Ignore,
 
     SyntaxError { error_msg: Option<&'static str> },
 }

@@ -4,6 +4,7 @@ use std::process;
 use std::{io, io::BufRead, io::Read};
 
 use lox_rs::scanner::Scanner;
+use lox_rs::token::TokenType;
 
 // map error to cmd line error
 fn run_file(file_path: &str) -> Result<(), io::Error> {
@@ -35,7 +36,9 @@ fn run(source: &str) -> Result<(), io::Error> {
     let tokens = scanner.scan_tokens();
 
     for token in tokens {
-        println!("{}", token);
+        if token.token_type != TokenType::Ignore {
+            println!("{}", token);
+        }
     }
 
     Ok(())

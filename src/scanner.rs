@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use itertools::MultiPeek;
+use std::collections::HashMap;
 use std::str::{Chars, FromStr};
 
 use crate::token::{Token, TokenType};
@@ -8,6 +9,7 @@ pub struct Scanner<'a> {
     source: MultiPeek<Chars<'a>>,
     curr_buf: Vec<char>,
     line: u32,
+    keywords: HashMap<String, TokenType>,
 }
 
 impl<'a> Scanner<'a> {
@@ -16,6 +18,24 @@ impl<'a> Scanner<'a> {
             source: source.chars().multipeek(),
             curr_buf: Vec::new(),
             line: 1 as u32,
+            keywords: HashMap::from_iter([
+                ("and".to_string(), TokenType::And),
+                ("class".to_string(), TokenType::Class),
+                ("else".to_string(), TokenType::Else),
+                ("false".to_string(), TokenType::False),
+                ("for".to_string(), TokenType::For),
+                ("fun".to_string(), TokenType::Fun),
+                ("if".to_string(), TokenType::If),
+                ("nil".to_string(), TokenType::Nil),
+                ("or".to_string(), TokenType::Or),
+                ("print".to_string(), TokenType::Print),
+                ("return".to_string(), TokenType::Return),
+                ("super".to_string(), TokenType::Super),
+                ("this".to_string(), TokenType::This),
+                ("true".to_string(), TokenType::True),
+                ("var".to_string(), TokenType::Var),
+                ("while".to_string(), TokenType::While),
+            ]),
         }
     }
 
@@ -84,7 +104,12 @@ impl<'a> Scanner<'a> {
                 }
             }
             ' ' | '\r' | '\t' | '\n' => {
-                return None;
+                Token {
+                    token_type: TokenType::Ignore,
+                    lexeme: "".to_string(),
+                    literal: None,
+                    line: self.line,
+                }
             }
             '"' => {
                 self.string()
@@ -110,6 +135,22 @@ impl<'a> Scanner<'a> {
                     Err(_) => self.finalize_error_token(Some("Failed to parse number"))
                 }
             }
+            c if c.is_ascii_alphabetic() || &c == &'_' => {
+                self.advance_until(|c | c.is_ascii_alphanumeric() || c == &'_');
+
+                let lexeme = String::from_iter(self.curr_buf.drain(..));
+                let token_type = match self.keywords.get(&lexeme) {
+                    Some(t) => t.clone(),
+                    None => TokenType::Identifer,
+                };
+
+                Token {
+                    token_type,
+                    lexeme,
+                    literal: None,
+                    line: self.line
+                }
+            }
             _ => self.finalize_error_token(Some("Unexpected character.")),
         };
 
@@ -118,6 +159,8 @@ impl<'a> Scanner<'a> {
 
     fn string(&mut self) -> Token {
         if let Some(_) = self.advance_until(|c| c != &'"') {
+            // Consume last '"'
+            self.advance();
             let lexeme= String::from_iter(self.curr_buf.drain(..)).trim_matches('"').to_string();
             Token {
                 token_type: TokenType::String,
@@ -145,6 +188,7 @@ impl<'a> Scanner<'a> {
     {
         loop {
             let next = self.source.peek()?;
+            println!("{}", next);
             if f(next) {
                 self.advance();
             } else {
