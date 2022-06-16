@@ -1,4 +1,54 @@
-use crate::token::Token;
+use crate::token::{Token, TokenType};
+
+
+pub struct Parser {
+    tokens: Vec<Token>,
+    curr: usize,
+}
+
+impl Parser {
+    pub fn new(tokens: Vec<Token>) -> Self {
+        Parser { tokens, curr: 0 }
+    }
+
+    pub fn equality(&mut self) {}
+
+    fn match_token(&mut self, types: &[TokenType]) -> bool {
+        for token_type in types {
+            if self.check(token_type) {
+                self.advance();
+                return true;
+            }
+        }
+        false
+    }
+
+    fn advance(&mut self) -> &Token {
+        if !self.is_at_end() {
+            self.curr += 1;
+        }
+        return self.previous()
+    }
+
+    fn check(&self, token_type: &TokenType) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        return self.peek().token_type == *token_type
+    }
+
+    fn is_at_end(&self ) -> bool {
+        return self.peek().token_type == TokenType::Eof
+    }
+
+    fn peek(&self) -> &Token {
+        &self.tokens[self.curr]
+    }
+
+    fn previous(&self) -> &Token {
+        &self.tokens[self.curr - 1]
+    }
+}
 
 // encapsulate data directly in enum or in struct?
 #[derive(Debug, Clone)]
