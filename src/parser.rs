@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenType};
+use crate::token::{self, Token, TokenType};
 
 
 pub struct Parser {
@@ -11,7 +11,117 @@ impl Parser {
         Parser { tokens, curr: 0 }
     }
 
-    pub fn equality(&mut self) {}
+    // change to error
+    fn equality(&mut self) -> Option<Expr> {
+        let mut expr = self.comparison()?;
+
+        while self.match_token(&vec![TokenType::BangEqual, TokenType::EqualEqual]) {
+            let operator = self.previous().clone();
+            let right = Box::new(self.comparison()?);
+            let left = Box::new(expr);
+            expr = Expr::Binary(BinaryExpr{
+                left,
+                operator,
+                right
+            })
+
+        }
+
+        Some(expr)
+    }
+
+    fn comparison(&mut self) -> Option<Expr> {
+        let mut expr = self.term()?;
+
+        while self.match_token(&vec![
+            TokenType::Greater,
+            TokenType::GreaterEqual,
+            TokenType::Less,
+            TokenType::LessEqual,
+        ]) {
+            let operator = self.previous().clone();
+            let right = Box::new(self.term()?);
+            let left = Box::new(expr);
+
+            expr = Expr::Binary(BinaryExpr{left, operator, right})
+        }
+
+        Some(expr)
+    }
+    fn term(&mut self) -> Option<Expr> {
+        let mut expr = self.factor()?;
+
+        while self.match_token(&vec![ TokenType::Minus, TokenType::Plus]) {
+            let operator = self.previous().clone();
+            let right = Box::new(self.factor()?);
+            let left = Box::new(expr);
+
+            expr = Expr::Binary(BinaryExpr{left, operator, right})
+        }
+
+        Some(expr)
+    }
+
+    fn factor(&mut self) -> Option<Expr> {
+        let mut expr = self.unary()?;
+
+        while self.match_token(&vec![TokenType::Slash, TokenType::Star]) {
+            let operator = self.previous().clone();
+            let right = Box::new(self.unary()?);
+            let left = Box::new(expr);
+
+            expr = Expr::Binary(BinaryExpr{left, operator, right})
+        }
+
+        Some(expr)
+    }
+
+    fn unary(&mut self) -> Option<Expr> {
+        if self.match_token(&vec![TokenType::Bang, TokenType::Minus]) {
+            let operator = self.previous().clone();
+            let right = Box::new(self.unary()?);
+            return Some(Expr::Unary(UnaryExpr{
+                operator,
+                right,
+            }))
+        }
+
+        self.primary()
+    }
+
+    // refactor to use match? 
+    fn primary(&mut self) -> Option<Expr> {
+        if self.match_token(&vec![TokenType::False]) {
+            return Some(Expr::Literal(Literal::False));
+        }
+        if self.match_token(&vec![TokenType::True]) {
+            return Some(Expr::Literal(Literal::True));
+        }
+        if self.match_token(&vec![TokenType::Nil]) {
+            return Some(Expr::Literal(Literal::Nil));
+        }
+        // fix this
+        if self.match_token(&vec![TokenType::Number]) {
+            let token::Literal::Number(value) = self.previous().literal?;
+            return Some(Expr::Literal(Literal::Number(value)));
+        }
+        if self.match_token(&vec![TokenType::String]) {
+            let token::Literal::Str(value) = self.previous().literal?;
+            return Some(Expr::Literal(Literal::String(value)));
+        }
+        if self.match_token(&vec![TokenType::LeftParens]) {
+            let expression = Box::new(self.expression()?);
+            self.consume(TokenType::RightParens, "Expect '(' after expression");
+            return Some(Expr::Grouping(GroupingExpr{expression}));
+        }
+        None
+    }
+
+    fn expression(&mut self) -> Option<Expr> {
+        todo!()
+    }
+
+    fn consume(&mut self, token_type: TokenType, msg: &str) {todo!()}
 
     fn match_token(&mut self, types: &[TokenType]) -> bool {
         for token_type in types {
@@ -62,7 +172,10 @@ pub enum Expr {
 #[derive(Debug, Clone)]
 pub enum Literal {
     String(String),
-    Number(f32),
+    Number(f64),
+    True,
+    False,
+    Nil,
 }
 
 #[derive(Debug, Clone)]
