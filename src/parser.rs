@@ -1,6 +1,5 @@
 use crate::token::{self, Token, TokenType};
 
-
 pub struct Parser {
     tokens: Vec<Token>,
     curr: usize,
@@ -19,12 +18,11 @@ impl Parser {
             let operator = self.previous().clone();
             let right = Box::new(self.comparison()?);
             let left = Box::new(expr);
-            expr = Expr::Binary(BinaryExpr{
+            expr = Expr::Binary(BinaryExpr {
                 left,
                 operator,
-                right
+                right,
             })
-
         }
 
         Some(expr)
@@ -43,7 +41,11 @@ impl Parser {
             let right = Box::new(self.term()?);
             let left = Box::new(expr);
 
-            expr = Expr::Binary(BinaryExpr{left, operator, right})
+            expr = Expr::Binary(BinaryExpr {
+                left,
+                operator,
+                right,
+            })
         }
 
         Some(expr)
@@ -51,12 +53,16 @@ impl Parser {
     fn term(&mut self) -> Option<Expr> {
         let mut expr = self.factor()?;
 
-        while self.match_token(&vec![ TokenType::Minus, TokenType::Plus]) {
+        while self.match_token(&vec![TokenType::Minus, TokenType::Plus]) {
             let operator = self.previous().clone();
             let right = Box::new(self.factor()?);
             let left = Box::new(expr);
 
-            expr = Expr::Binary(BinaryExpr{left, operator, right})
+            expr = Expr::Binary(BinaryExpr {
+                left,
+                operator,
+                right,
+            })
         }
 
         Some(expr)
@@ -70,7 +76,11 @@ impl Parser {
             let right = Box::new(self.unary()?);
             let left = Box::new(expr);
 
-            expr = Expr::Binary(BinaryExpr{left, operator, right})
+            expr = Expr::Binary(BinaryExpr {
+                left,
+                operator,
+                right,
+            })
         }
 
         Some(expr)
@@ -80,16 +90,13 @@ impl Parser {
         if self.match_token(&vec![TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous().clone();
             let right = Box::new(self.unary()?);
-            return Some(Expr::Unary(UnaryExpr{
-                operator,
-                right,
-            }))
+            return Some(Expr::Unary(UnaryExpr { operator, right }));
         }
 
         self.primary()
     }
 
-    // refactor to use match? 
+    // refactor to use match?
     fn primary(&mut self) -> Option<Expr> {
         if self.match_token(&vec![TokenType::False]) {
             return Some(Expr::Literal(Literal::False));
@@ -112,7 +119,7 @@ impl Parser {
         if self.match_token(&vec![TokenType::LeftParens]) {
             let expression = Box::new(self.expression()?);
             self.consume(TokenType::RightParens, "Expect '(' after expression");
-            return Some(Expr::Grouping(GroupingExpr{expression}));
+            return Some(Expr::Grouping(GroupingExpr { expression }));
         }
         None
     }
@@ -121,7 +128,9 @@ impl Parser {
         todo!()
     }
 
-    fn consume(&mut self, token_type: TokenType, msg: &str) {todo!()}
+    fn consume(&mut self, token_type: TokenType, msg: &str) {
+        todo!()
+    }
 
     fn match_token(&mut self, types: &[TokenType]) -> bool {
         for token_type in types {
@@ -137,18 +146,18 @@ impl Parser {
         if !self.is_at_end() {
             self.curr += 1;
         }
-        return self.previous()
+        return self.previous();
     }
 
     fn check(&self, token_type: &TokenType) -> bool {
         if self.is_at_end() {
             return false;
         }
-        return self.peek().token_type == *token_type
+        return self.peek().token_type == *token_type;
     }
 
-    fn is_at_end(&self ) -> bool {
-        return self.peek().token_type == TokenType::Eof
+    fn is_at_end(&self) -> bool {
+        return self.peek().token_type == TokenType::Eof;
     }
 
     fn peek(&self) -> &Token {
