@@ -3,11 +3,13 @@ use std::fs::File;
 use std::process;
 use std::{io, io::BufRead, io::Read};
 
+use lox_rs::error::LoxError;
+use lox_rs::parser::Parser;
 use lox_rs::scanner::Scanner;
 use lox_rs::token::TokenType;
 
 // map error to cmd line error
-fn run_file(file_path: &str) -> Result<(), io::Error> {
+fn run_file(file_path: &str) -> Result<(), LoxError> {
     let mut f = File::open(&file_path)?;
     let mut source = String::new();
 
@@ -16,7 +18,7 @@ fn run_file(file_path: &str) -> Result<(), io::Error> {
     Ok(run(&source)?)
 }
 
-fn run_prompt() -> Result<(), io::Error> {
+fn run_prompt() {
     let stdin = io::stdin();
     let mut handler = stdin.lock();
 
@@ -24,23 +26,25 @@ fn run_prompt() -> Result<(), io::Error> {
         print!("> ");
         let mut line = String::new();
         if handler.read_line(&mut line).is_err() || line.is_empty() {
-            return Ok(());
+            return;
         }
 
-        run(&line)?;
+        match run(&line) {
+            Ok(_) => (),
+            Err(e) => println!("{}", e),
+        };
     }
 }
 
-fn run(source: &str) -> Result<(), io::Error> {
+fn run(source: &str) -> Result<(), LoxError> {
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens();
+    // filter whitespace tokens, etc
+    let mut parser = Parser::new(tokens);
 
-    for token in tokens {
-        if token.token_type != TokenType::Ignore {
-            println!("{}", token);
-        }
-    }
+    let expr = parser.parse()?;
 
+    println!("{:?}", expr);
     Ok(())
 }
 
@@ -59,7 +63,7 @@ fn main() {
             }
         }
     } else {
-        _ = run_prompt();
+        run_prompt();
     }
 
     process::exit(0);

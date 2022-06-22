@@ -1,4 +1,4 @@
-use crate::token::{self, Token, TokenType};
+use crate::{token::{self, Token, TokenType}, error::LoxError};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -10,8 +10,12 @@ impl Parser {
         Parser { tokens, curr: 0 }
     }
 
+    pub fn parse(&mut self) -> Result<Expr, LoxError> {
+        self.expression()
+    }
+
     // change to error
-    fn equality(&mut self) -> Option<Expr> {
+    fn equality(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.comparison()?;
 
         while self.match_token(&vec![TokenType::BangEqual, TokenType::EqualEqual]) {
@@ -25,10 +29,10 @@ impl Parser {
             })
         }
 
-        Some(expr)
+        Ok(expr)
     }
 
-    fn comparison(&mut self) -> Option<Expr> {
+    fn comparison(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.term()?;
 
         while self.match_token(&vec![
@@ -48,9 +52,10 @@ impl Parser {
             })
         }
 
-        Some(expr)
+        Ok(expr)
     }
-    fn term(&mut self) -> Option<Expr> {
+
+    fn term(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.factor()?;
 
         while self.match_token(&vec![TokenType::Minus, TokenType::Plus]) {
@@ -65,10 +70,10 @@ impl Parser {
             })
         }
 
-        Some(expr)
+        Ok(expr)
     }
 
-    fn factor(&mut self) -> Option<Expr> {
+    fn factor(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.unary()?;
 
         while self.match_token(&vec![TokenType::Slash, TokenType::Star]) {
@@ -83,53 +88,76 @@ impl Parser {
             })
         }
 
-        Some(expr)
+        Ok(expr)
     }
 
-    fn unary(&mut self) -> Option<Expr> {
+    fn unary(&mut self) -> Result<Expr, LoxError> {
         if self.match_token(&vec![TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous().clone();
             let right = Box::new(self.unary()?);
-            return Some(Expr::Unary(UnaryExpr { operator, right }));
+            return Ok(Expr::Unary(UnaryExpr { operator, right }));
         }
 
         self.primary()
     }
 
     // refactor to use match?
-    fn primary(&mut self) -> Option<Expr> {
+    fn primary(&mut self) -> Result<Expr, LoxError> {
         if self.match_token(&vec![TokenType::False]) {
-            return Some(Expr::Literal(Literal::False));
+            return Ok(Expr::Literal(Literal::False));
         }
         if self.match_token(&vec![TokenType::True]) {
-            return Some(Expr::Literal(Literal::True));
+            return Ok(Expr::Literal(Literal::True));
         }
         if self.match_token(&vec![TokenType::Nil]) {
-            return Some(Expr::Literal(Literal::Nil));
+            return Ok(Expr::Literal(Literal::Nil));
         }
-        // fix this
         if self.match_token(&vec![TokenType::Number]) {
-            let token::Literal::Number(value) = self.previous().literal?;
-            return Some(Expr::Literal(Literal::Number(value)));
+            if let Some(token::Literal::Number(value)) = self.previous().literal {
+                return Ok(Expr::Literal(Literal::Number(value)));
+            }
         }
         if self.match_token(&vec![TokenType::String]) {
-            let token::Literal::Str(value) = self.previous().literal?;
-            return Some(Expr::Literal(Literal::String(value)));
+            if let Some(token::Literal::Str(value)) = &self.previous().literal {
+                return Ok(Expr::Literal(Literal::String(value.into())));
+            }
         }
         if self.match_token(&vec![TokenType::LeftParens]) {
             let expression = Box::new(self.expression()?);
-            self.consume(TokenType::RightParens, "Expect '(' after expression");
-            return Some(Expr::Grouping(GroupingExpr { expression }));
+            self.consume(TokenType::RightParens, "Expect '(' after expression")?;
+            return Ok(Expr::Grouping(GroupingExpr { expression }));
         }
-        None
+        
+        Err(LoxError::ParserError("Expect expression.".into(), self.curr, self.peek().clone()))
     }
 
-    fn expression(&mut self) -> Option<Expr> {
-        todo!()
+    fn expression(&mut self) -> Result<Expr, LoxError> {
+        self.equality()
     }
 
-    fn consume(&mut self, token_type: TokenType, msg: &str) {
-        todo!()
+    fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<&Token, LoxError> {
+        if self.check(&token_type) {
+            return Ok(self.advance());
+        }
+
+        Err(LoxError::ParserError(msg.into(), self.curr, self.peek().clone()))
+    }
+
+    fn synchronize(&mut self) {
+        self.advance();
+
+        while !self.is_at_end() {
+            if self.previous().token_type == TokenType::SemiColon {
+                return;
+            }
+
+            match self.peek().token_type {
+                TokenType::Class | TokenType::Fun | TokenType::Var | TokenType::For | TokenType::If | TokenType::While | TokenType::Print | TokenType::Return => return,
+                _ => (),
+            }
+
+            self.advance();
+        }
     }
 
     fn match_token(&mut self, types: &[TokenType]) -> bool {
