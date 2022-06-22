@@ -2,7 +2,6 @@ use std::{fmt, io};
 
 use crate::token::{Token, TokenType};
 
-
 pub enum LoxError {
     ParserError(String, usize, Token),
     Io(io::Error),
@@ -17,7 +16,7 @@ impl fmt::Display for LoxError {
                 } else {
                     write!(f, "{} at '{}' {}", l, t.lexeme, s)
                 }
-            },
+            }
             LoxError::Io(ref err) => write!(f, "IO Error: {}", err),
         }
     }

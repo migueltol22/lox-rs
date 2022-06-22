@@ -1,4 +1,7 @@
-use crate::{token::{self, Token, TokenType}, error::LoxError};
+use crate::{
+    error::LoxError,
+    token::{self, Token, TokenType},
+};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -127,8 +130,12 @@ impl Parser {
             self.consume(TokenType::RightParens, "Expect '(' after expression")?;
             return Ok(Expr::Grouping(GroupingExpr { expression }));
         }
-        
-        Err(LoxError::ParserError("Expect expression.".into(), self.curr, self.peek().clone()))
+
+        Err(LoxError::ParserError(
+            "Expect expression.".into(),
+            self.curr,
+            self.peek().clone(),
+        ))
     }
 
     fn expression(&mut self) -> Result<Expr, LoxError> {
@@ -140,7 +147,11 @@ impl Parser {
             return Ok(self.advance());
         }
 
-        Err(LoxError::ParserError(msg.into(), self.curr, self.peek().clone()))
+        Err(LoxError::ParserError(
+            msg.into(),
+            self.curr,
+            self.peek().clone(),
+        ))
     }
 
     fn synchronize(&mut self) {
@@ -152,7 +163,14 @@ impl Parser {
             }
 
             match self.peek().token_type {
-                TokenType::Class | TokenType::Fun | TokenType::Var | TokenType::For | TokenType::If | TokenType::While | TokenType::Print | TokenType::Return => return,
+                TokenType::Class
+                | TokenType::Fun
+                | TokenType::Var
+                | TokenType::For
+                | TokenType::If
+                | TokenType::While
+                | TokenType::Print
+                | TokenType::Return => return,
                 _ => (),
             }
 
