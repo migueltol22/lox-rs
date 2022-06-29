@@ -39,7 +39,7 @@ fn run_prompt() {
 fn run(source: &str) -> Result<(), LoxError> {
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens();
-    for token in &tokens { 
+    for token in &tokens {
         println!("{:?}", token);
     }
     let mut parser = Parser::new(tokens);
