@@ -17,7 +17,6 @@ impl Parser {
         self.expression()
     }
 
-    // change to error
     fn equality(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.comparison()?;
 

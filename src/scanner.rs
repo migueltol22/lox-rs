@@ -3,6 +3,7 @@ use itertools::MultiPeek;
 use std::collections::HashMap;
 use std::str::{Chars, FromStr};
 
+use crate::token::Literal;
 use crate::token::{Token, TokenType};
 
 pub struct Scanner<'a> {
@@ -43,7 +44,9 @@ impl<'a> Scanner<'a> {
         let mut tokens = Vec::new();
         loop {
             if let Some(token) = self.scan_token() {
-                tokens.push(token)
+                if token.token_type != TokenType::Ignore {
+                    tokens.push(token);
+                }
             } else {
                 break;
             }
@@ -55,7 +58,6 @@ impl<'a> Scanner<'a> {
 
     fn scan_token(&mut self) -> Option<Token> {
         let c = self.advance()?;
-
         let token = match c {
             '(' => self.finalize_token(TokenType::LeftParens),
             ')' => self.finalize_token(TokenType::RightParens),
@@ -103,12 +105,7 @@ impl<'a> Scanner<'a> {
                     self.finalize_token(TokenType::Slash)
                 }
             }
-            ' ' | '\r' | '\t' | '\n' => Token {
-                token_type: TokenType::Ignore,
-                lexeme: "".to_string(),
-                literal: None,
-                line: self.line,
-            },
+            ' ' | '\r' | '\t' | '\n' => self.finalize_token(TokenType::Ignore),
             '"' => self.string(),
             d if d.is_ascii_digit() => {
                 let next_char = self.advance_until(|c| c.is_ascii_digit());
@@ -122,10 +119,10 @@ impl<'a> Scanner<'a> {
                 }
                 let lexeme = String::from_iter(self.curr_buf.drain(..));
                 match f64::from_str(&lexeme) {
-                    Ok(_) => Token {
+                    Ok(n) => Token {
                         token_type: TokenType::Number,
                         lexeme,
-                        literal: None,
+                        literal: Some(Literal::Number(n)),
                         line: self.line,
                     },
                     Err(_) => self.finalize_error_token(Some("Failed to parse number")),
@@ -162,8 +159,8 @@ impl<'a> Scanner<'a> {
                 .to_string();
             Token {
                 token_type: TokenType::String,
-                lexeme,
-                literal: None,
+                lexeme: lexeme.clone(),
+                literal: Some(Literal::Str(lexeme.clone())),
                 line: self.line,
             }
         } else {
@@ -186,7 +183,6 @@ impl<'a> Scanner<'a> {
     {
         loop {
             let next = self.source.peek()?;
-            println!("{}", next);
             if f(next) {
                 self.advance();
             } else {

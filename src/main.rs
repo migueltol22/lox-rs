@@ -39,12 +39,14 @@ fn run_prompt() {
 fn run(source: &str) -> Result<(), LoxError> {
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens();
-    // filter whitespace tokens, etc
+    for token in &tokens { 
+        println!("{:?}", token);
+    }
     let mut parser = Parser::new(tokens);
 
     let expr = parser.parse()?;
 
-    println!("{:?}", expr);
+    println!("Expr: {:?}", expr);
     Ok(())
 }
 
