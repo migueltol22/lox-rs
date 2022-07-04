@@ -3,6 +3,22 @@ use crate::{
     token::{self, Token, TokenType},
 };
 
+/*
+
+Complete Expression Grammar
+
+expression     → equality ;
+equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+term           → factor ( ( "-" | "+" ) factor )* ;
+factor         → unary ( ( "/" | "*" ) unary )* ;
+unary          → ( "!" | "-" ) unary
+               | primary ;
+primary        → NUMBER | STRING | "true" | "false" | "nil"
+               | "(" expression ")" ;
+
+*/
+
 pub struct Parser {
     tokens: Vec<Token>,
     curr: usize,
