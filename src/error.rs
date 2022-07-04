@@ -5,6 +5,7 @@ use crate::token::{Token, TokenType};
 pub enum LoxError {
     ParserError(String, usize, Token),
     Io(io::Error),
+    RuntimeError()
 }
 
 impl fmt::Display for LoxError {
@@ -18,6 +19,8 @@ impl fmt::Display for LoxError {
                 }
             }
             LoxError::Io(ref err) => write!(f, "IO Error: {}", err),
+            // TODO(fill in error info)
+            LoxError::RuntimeError() => write!(f, "Runtime Error: "),
         }
     }
 }
