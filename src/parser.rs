@@ -122,10 +122,10 @@ impl Parser {
     // refactor to use match?
     fn primary(&mut self) -> Result<Expr, LoxError> {
         if self.match_token(&vec![TokenType::False]) {
-            return Ok(Expr::Literal(Literal::False));
+            return Ok(Expr::Literal(Literal::Boolean(false)));
         }
         if self.match_token(&vec![TokenType::True]) {
-            return Ok(Expr::Literal(Literal::True));
+            return Ok(Expr::Literal(Literal::Boolean(true)));
         }
         if self.match_token(&vec![TokenType::Nil]) {
             return Ok(Expr::Literal(Literal::Nil));
@@ -243,8 +243,7 @@ pub enum Expr {
 pub enum Literal {
     String(String),
     Number(f64),
-    True,
-    False,
+    Boolean(bool),
     Nil,
 }
 
